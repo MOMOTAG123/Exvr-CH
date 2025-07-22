@@ -1,0 +1,1104 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>VR控制器 - {{ hand|upper }}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <style>
+        :root {
+            --primary-color: #2196F3;
+            --button-size: 18vw; /* 使用视口宽度定义按钮大小 */
+        }
+        body {
+            margin: 0;
+            padding: 0;
+            background: #000;
+            overflow: hidden;
+            touch-action: none;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        .gesture-panel {
+            position: absolute;
+            {% if hand == 'Right' %}
+            right: 18%;
+            {% else %}
+            left: 18%;
+            {% endif %}
+            bottom: 8.5%;
+            width: 60vw;
+            height: 5vh;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2vw;
+            padding: 1vw;
+            box-shadow: 0 0.5vw 2vw rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            display: flex;
+            {% if hand == 'Right' %}
+            flex-direction: row-reverse;
+            {% else %}
+            flex-direction: row;
+            {% endif %}
+            justify-content: flex-start;
+            overflow-x: auto;
+            padding-bottom: 1vw;
+            padding-left: 1vw;
+        }
+
+        .gesture-grid {
+            display: flex;
+            gap: 0.7vh;
+            height: 100%;
+            justify-content: flex-start;
+            align-items: center;
+            padding: 0 0.5vw;
+        }
+
+        .gesture-item {
+            width: 10vw;
+            height: 10vw;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 1.5vw;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 5vw;
+            color: white;
+            user-select: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            -webkit-touch-callout: none;
+            transition: all 0.1s ease;
+            position: relative;
+            flex-shrink: 0;
+        }
+
+        .gesture-item.active {
+            background: rgba(33, 150, 243, 0.3);
+            border-color: var(--primary-color);
+            box-shadow: 0 0 1.5vw rgba(33, 150, 243, 0.3);
+            transform: scale(0.95);
+        }
+
+        .joystick-area {
+            position: absolute;
+            {% if hand == 'Right' %}
+            right: 27%;
+            {% else %}
+            left: 27%;
+            {% endif %}
+            bottom: 30%;
+            width: 45vw; /* 使用视口宽度定义摇杆区域大小 */
+            height: 45vw; /* 保持宽高比一致 */
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .joystick-thumb {
+            width: 12vw; /* 使用视口宽度定义摇杆手柄大小 */
+            height: 12vw; /* 保持宽高比一致 */
+            background: var(--primary-color);
+            border-radius: 50%;
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            transition: transform 0.1s, background 0.1s;
+        }
+        .joystick-thumb.active {
+            background: red;
+        }
+        .dial-area {
+            position: absolute;
+            {% if hand == 'Right' %}
+            right: 3%;
+            {% else %}
+            left: 3%;
+            {% endif %}
+            top: 28%;
+            width: 28vw;
+            height: 28vw;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .dial-thumb {
+            width: 7vw;
+            height: 7vw;
+            background: #FFFFFF;
+            border-radius: 50%;
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            transition: transform 0.1s, background 0.1s;
+        }
+        .slider-area {
+            position: absolute;
+            {% if hand == 'Right' %}
+            right: 13%;
+            {% else %}
+            left: 13%;
+            {% endif %}
+            top: 10%;
+            width: 8vw;
+            height: 28vw;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4vw;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+        }
+
+        .slider-thumb {
+            width: 8vw;
+            height: 3vw;
+            background: #FFFFFF;
+            border-radius: 4vw;
+            position: absolute;
+            transition: transform 0.1s;
+            touch-action: none;
+        }
+        .vr-button {
+            width: var(--button-size);
+            height: var(--button-size);
+            border-radius: 50%;
+            background: rgba(51, 51, 51, 0.5);
+            border: 2px solid #666;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: absolute;
+            transition: background 0.1s, border-color 0.1s;
+        }
+        .vr-button.active {
+            background: var(--primary-color);
+            border-color: #fff;
+        }
+        .vr-button-label,
+        .trigger-label,
+        .edit-button-label,
+        .cube-face {
+            position: absolute;
+            color: white;
+            font-size: 2vh; /* 使用视口高度定义字体大小 */
+            user-select: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            -webkit-touch-callout: none;
+        }
+        .vr-button-label {
+        }
+        .trigger {
+            width: var(--button-size);
+            height: var(--button-size);
+            border-radius: 50%;
+            background: rgba(51, 51, 51, 0.5);
+            border: 2px solid #666;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.1s, border-color 0.1s;
+            position: absolute;
+        }
+        .trigger.active {
+            background: var(--primary-color);
+            border-color: #fff;
+        }
+        .trigger .trigger-label {
+        }
+        .grab .trigger-label {
+        }
+        {% if hand == 'Right' %}
+        .trigger { right: 6vw; bottom : 42%;}
+        .grab { right: 6vw; bottom : 33%;}
+        {% else %}
+        .trigger { left: 6vw; bottom : 42%;}
+        .grab { left: 6vw; bottom : 33%;}
+        {% endif %}
+        {% if hand == 'Right' %}
+        .cube-container {
+            width: 24vw;
+            height: 24vw;
+            perspective: 50vw;
+            margin-bottom: 2vh;
+            position: absolute;
+            right: 38%;
+            bottom: 60%;
+        }
+        {% else %}
+        .cube-container {
+            width: 24vw;
+            height: 24vw;
+            perspective: 50vw;
+            margin-bottom: 2vh;
+            position: absolute;
+            left: 38%;
+            bottom: 60%;
+        }
+        {% endif %}
+
+        .cube {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            transform-style: preserve-3d;
+            transform: rotateX(0deg) rotateY(0deg) rotateZ(0deg);
+            transition: transform 0.1s linear;
+        }
+        .cube-face {
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid var(--primary-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 3vh; /* 使用视口高度定义字体大小 */
+            font-weight: bold;
+        }
+        .cube-face.front { transform: translateZ(12vw); }
+        .cube-face.back { transform: rotateY(180deg) translateZ(12vw); }
+        .cube-face.left { transform: rotateY(-90deg) translateZ(12vw); }
+        .cube-face.right { transform: rotateY(90deg) translateZ(12vw); }
+        .cube-face.top { transform: rotateX(90deg) translateZ(12vw); }
+        .cube-face.bottom { transform: rotateX(-90deg) translateZ(12vw); }
+
+        .edit-button {
+            width: 8vw;
+            height: 8vw;
+            border-radius: 10%;
+            background: rgba(255, 165, 0, 0.5);
+            border: 2px solid #FFA500;
+            position: absolute;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.1s;
+            z-index: 100;
+        }
+        .edit-button.active {
+            background: #FFA500;
+        }
+        .edit-button-label {
+            font-size: 1.5vh;
+        }
+
+        .draggable {
+            transition: none !important;
+            cursor: move;
+            touch-action: none;
+        }
+
+        {% if hand == 'Right' %}
+        .edit-button {
+            top: 5%;
+            left: 5%;
+        }
+        #resetBtn {
+            top: 5%;
+            left: 15%;
+        }
+        #hapticBtn {
+            top: 5%;
+            left: 25%;
+        }
+        #soundBtn {
+            top: 5%;
+            left: 35%;
+        }
+        {% else %}
+        .edit-button {
+            top: 5%;
+            right: 5%;
+        }
+        #resetBtn {
+            top: 5%;
+            right: 15%;
+        }
+        #hapticBtn {
+            top: 5%;
+            right: 25%;
+        }
+        #soundBtn {
+            top: 5%;
+            right: 35%;
+        }
+        {% endif %}
+    </style>
+</head>
+<body>
+<div class="edit-button" id="editBtn">
+    <div class="edit-button-label">编辑</div>
+</div>
+
+<div class="edit-button" id="resetBtn">
+    <div class="edit-button-label">重置</div>
+</div>
+
+<div class="edit-button" id="hapticBtn">
+    <div class="edit-button-label">震动</div>
+</div>
+
+<div class="edit-button" id="soundBtn">
+    <div class="edit-button-label">声音</div>
+</div>
+
+
+<div class="gesture-panel">
+    <div class="gesture-grid">
+        {% if hand == 'Right' %}
+            {% for gesture in gestures|reverse %}
+                <div class="gesture-item"
+                     data-fingers="{{ gesture.fingers | tojson | forceescape }}"
+                     ontouchstart="handleGestureSelect(this)">
+                    {{ gesture.key }}
+                </div>
+            {% endfor %}
+        {% else %}
+            {% for gesture in gestures %}
+                <div class="gesture-item"
+                     data-fingers="{{ gesture.fingers | tojson | forceescape }}"
+                     ontouchstart="handleGestureSelect(this)">
+                    {{ gesture.key }}
+                </div>
+            {% endfor %}
+        {% endif %}
+    </div>
+</div>
+
+
+<div class="slider-area" id="slider-area">
+    <div class="slider-thumb" id="slider"></div>
+</div>
+
+<div class="dial-area" id="dial-area">
+    <div class="dial-thumb" id="dial"></div>
+</div>
+
+<!-- 顶部中央的校准按钮 -->
+<div class="vr-button" id="calibrate" style="bottom: 80%; left: 40%;">
+    <div class="vr-button-label">校准</div>
+</div>
+
+<!-- 立方体容器 -->
+<div class="cube-container">
+    <div class="cube" id="cube">
+        <div class="cube-face front">前</div>
+        <div class="cube-face back">后</div>
+        <div class="cube-face left">左</div>
+        <div class="cube-face right">右</div>
+        <div class="cube-face top">上</div>
+        <div class="cube-face bottom">下</div>
+    </div>
+</div>
+
+<!-- 摇杆 -->
+<div class="joystick-area">
+    <div class="joystick-thumb" id="joystick"></div>
+</div>
+
+<!-- 扳机键 -->
+<div class="trigger" id="trigger">
+    <div class="trigger-label">扳机</div>
+</div>
+<div class="trigger grab" id="grab">
+    <div class="trigger-label">抓取</div>
+</div>
+
+<!-- 右手布局 -->
+{% if hand == 'Right' %}
+<div class="vr-button" id="system" style="bottom: 15%; right: 60%;">
+    <div class="vr-button-label">sys</div>
+</div>
+<div class="vr-button" id="button1" style="bottom: 15%; right: 40%;">
+    <div class="vr-button-label">B</div>
+</div>
+<div class="vr-button" id="button0" style="bottom: 15%; right: 20%;">
+    <div class="vr-button-label">A</div>
+</div>
+
+<!-- 左手布局 -->
+{% else %}
+<div class="vr-button" id="button0" style="bottom: 15%; left: 20%;">
+    <div class="vr-button-label">X</div>
+</div>
+<div class="vr-button" id="button1" style="bottom: 15%; left: 40%;">
+    <div class="vr-button-label">Y</div>
+</div>
+<div class="vr-button" id="system" style="bottom: 15%; left: 60%;">
+    <div class="vr-button-label">sys</div>
+</div>
+{% endif %}
+
+<script>
+    const CONFIG = {
+        hand: "{{ hand }}",
+        sendInterval: "{{ send_interval }}",
+        deadZone: 0.05
+    };
+
+    const serverIp = "{{ server_ip }}";
+    const serverPort="{{ server_port }}"
+    const websocketUrl = `wss://${serverIp}:${serverPort}`;
+
+    const socket = new WebSocket(websocketUrl);
+
+    let audioContext = null;
+
+    socket.onopen = function() {
+        console.log('WebSocket连接已建立');
+    };
+
+    socket.onmessage = function(event) {
+        const data = JSON.parse(event.data);
+        if (data.type === 'haptic' && data.hand === CONFIG.hand) {
+            if (isHapticMode){
+                triggerHapticFeedback(data.duration);
+            }
+            if (isSoundMode){
+                playVabrationSound(data.duration);
+            }
+        }
+    };
+    let isPlaying = false;
+   function playVabrationSound(duration = 100) {
+       if (isPlaying) {
+           console.log('声音正在播放，请稍候');
+           return;
+       }
+       if (duration<100 && duration >0){
+          duration = 100;
+       }
+       if (!audioContext) return;
+       try {
+           isPlaying = true;
+
+           const oscillator = audioContext.createOscillator();
+           const gainNode = audioContext.createGain();
+           oscillator.connect(gainNode);
+           gainNode.connect(audioContext.destination);
+           oscillator.type = 'sine';
+           oscillator.frequency.setValueAtTime(140, audioContext.currentTime);
+           gainNode.gain.setValueAtTime(1.0, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration/1000);
+
+           oscillator.start();
+           oscillator.stop(audioContext.currentTime + duration / 1000);
+           oscillator.onended = () => {
+               gainNode.disconnect();
+               oscillator.disconnect();
+               isPlaying = false;
+           };
+       } catch (error) {
+           console.error('声音播放失败:', error);
+           isPlaying = false;
+       }
+   }
+
+    function triggerHapticFeedback(duration) {
+        try {
+            if (navigator.vibrate) {
+                navigator.vibrate(duration);
+            }
+        } catch (e) {
+            console.warn('震动失败:', e);
+        }
+    }
+
+    socket.onclose = function() {
+        console.log('WebSocket连接已关闭');
+    };
+
+    socket.onerror = function(error) {
+        console.error('WebSocket错误:', error);
+    };
+
+    let state = {
+        slider: 0,
+        sliderClicked: false,
+        dial: [0, 0],
+        dialClicked: false,
+        joystick: [0, 0],
+        joystickClicked: false,
+        buttons: {
+            system: false,
+            button0: false,
+            button1: false,
+            trigger: false,
+            grab: false
+        },
+        fingers:[1, 1, 1, 1, 1]
+    };
+
+    let rawQuaternion = { w: 1, x: 0, y: 0, z: 0 };
+    let calibQuaternion = { w: 1, x: 0, y: 0, z: 0 };
+    let calibratedQuaternion = { w: 1, x: 0, y: 0, z: 0 };
+
+    const cube = document.getElementById('cube');
+
+    let isEditMode = false;
+    let isHapticMode = true;
+    let isSoundMode = false;
+    let selectedElement = null;
+    let initialX = 0;
+    let initialY = 0;
+    let currentX = 0;
+    let currentY = 0;
+    let positions = {};
+
+    const storageKey = `controllerPositions_${CONFIG.hand}`;
+
+    document.getElementById('editBtn').addEventListener('touchstart', function(e) {
+        isEditMode = !isEditMode;
+        this.classList.toggle('active', isEditMode);
+
+        document.querySelectorAll('.vr-button, .trigger, .joystick-area, .cube-container, .dial-area, .slider-area, .gesture-panel').forEach(el => {
+            el.classList.toggle('draggable', isEditMode);
+        });
+
+        if (!isEditMode) {
+            localStorage.setItem(storageKey, JSON.stringify(positions));
+        }
+    });
+
+    // 重置按钮功能
+    document.getElementById('resetBtn').addEventListener('touchstart', function() {
+        localStorage.removeItem(storageKey);
+        window.location.reload(); // 重新加载页面以重置位置
+    });
+
+    document.getElementById('hapticBtn').addEventListener('touchstart', function(e) {
+        isHapticMode = !isHapticMode;
+        this.classList.toggle('active', isHapticMode);
+    });
+
+    document.getElementById('soundBtn').addEventListener('touchstart', function(e) {
+        isSoundMode = !isSoundMode;
+        this.classList.toggle('active', isSoundMode);
+    });
+
+
+    document.addEventListener('touchstart', function(e) {
+        if (!isEditMode) return;
+        const newSelected = e.target.closest('.draggable');
+        if (!newSelected) return;
+        e.preventDefault();
+
+        if (selectedElement && selectedElement !== newSelected) {
+            selectedElement.style.transition = '';
+            selectedElement.style.boxShadow = '';
+            const prevId = selectedElement.id || selectedElement.className.match(/[\w-]+/)[0];
+            const prevRect = selectedElement.getBoundingClientRect();
+            positions[prevId] = { x: prevRect.left, y: prevRect.top };
+        }
+        selectedElement = newSelected;
+        const rect = selectedElement.getBoundingClientRect();
+        initialX = e.touches[0].clientX - rect.left;
+        initialY = e.touches[0].clientY - rect.top;
+        currentX = rect.left;
+        currentY = rect.top;
+        selectedElement.style.transition = 'none';
+        selectedElement.style.boxShadow = '0 0 15px orange';
+    });
+
+    document.addEventListener('touchmove', function(e) {
+        if (!isEditMode || !selectedElement) return;
+
+        e.preventDefault();
+        const touch = e.touches[0];
+
+        const newX = touch.clientX - initialX;
+        const newY = touch.clientY - initialY;
+
+        selectedElement.style.left = `${newX}px`;
+        selectedElement.style.top = `${newY}px`;
+    });
+
+    document.addEventListener('touchend', function() {
+        if (!isEditMode || !selectedElement) return;
+        selectedElement.style.transition = '';
+        selectedElement.style.boxShadow = '';
+
+        const rect = selectedElement.getBoundingClientRect();
+        const id = selectedElement.id || selectedElement.className.match(/[\w-]+/)[0];
+        positions[id] = {
+            x: rect.left,
+            y: rect.top
+        };
+
+        selectedElement = null;
+    });
+
+    window.addEventListener('load', function() {
+        const savedPositions = localStorage.getItem(storageKey);
+        if (savedPositions) {
+            positions = JSON.parse(savedPositions);
+            Object.entries(positions).forEach(([id, pos]) => {
+                const el = document.getElementById(id) ||
+                         document.querySelector(`.${id.split(' ')[0]}`);
+                if (el) {
+                    el.style.left = `${pos.x}px`;
+                    el.style.top = `${pos.y}px`;
+                    el.style.right = 'auto';
+                    el.style.bottom = 'auto';
+                }
+            });
+        }
+
+        document.getElementById('hapticBtn').classList.toggle('active', isHapticMode); // [!code ++]
+
+        const gestureItems = document.querySelectorAll('.gesture-item');
+        if (gestureItems.length > 0) {
+            let selectedGestureItem = gestureItems[0];
+            if (CONFIG.hand=="Right") {
+                selectedGestureItem = gestureItems[gestureItems.length - 1];
+            }
+            handleGestureSelect(selectedGestureItem);
+        }
+    });
+
+    initJoystick();
+    initDial();
+    initSlider();
+    initButtons();
+    initTriggers();
+    initCalibrate();
+    startTracking();
+
+    function startTracking() {
+        window.addEventListener('deviceorientation', event => {
+            rawQuaternion = toQuaternion(event.alpha || 0, event.beta || 0, event.gamma || 0);
+            calibratedQuaternion = multiplyQuaternions(calibQuaternion, rawQuaternion);
+            updateCubeRotation(calibratedQuaternion);
+        });
+
+        setInterval(() => {
+            if (socket.readyState === WebSocket.OPEN) {
+                socket.send(JSON.stringify({
+                    hand: CONFIG.hand,
+                    quaternion: calibratedQuaternion,
+                    ...state
+                }));
+            }
+        }, CONFIG.sendInterval);
+    }
+
+    function updateCubeRotation(quaternion) {
+        const matrix = quaternionToMatrix(quaternion);
+        cube.style.transform = `matrix3d(${matrix.join(',')})`;
+    }
+
+    function toQuaternion(alpha, beta, gamma) {
+        const degToRad = Math.PI / 180;
+
+        const angles = {
+            z: -alpha * degToRad,
+            x: -beta * degToRad,
+            y: gamma * degToRad
+        };
+
+        const cz = Math.cos(angles.z / 2);
+        const sz = Math.sin(angles.z / 2);
+        const cx = Math.cos(angles.x / 2);
+        const sx = Math.sin(angles.x / 2);
+        const cy = Math.cos(angles.y / 2);
+        const sy = Math.sin(angles.y / 2);
+
+        const qz = { w: cz, x: 0, y: 0, z: sz };
+        const qx = { w: cx, x: sx, y: 0, z: 0 };
+        const qy = { w: cy, x: 0, y: sy, z: 0 };
+
+        const temp = multiplyQuaternions(qz, qx);
+        return multiplyQuaternions(temp, qy);
+    }
+
+    function multiplyQuaternions(a, b) {
+        return {
+            w: a.w * b.w - a.x * b.x - a.y * b.y - a.z * b.z,
+            x: a.w * b.x + a.x * b.w + a.y * b.z - a.z * b.y,
+            y: a.w * b.y - a.x * b.z + a.y * b.w + a.z * b.x,
+            z: a.w * b.z + a.x * b.y - a.y * b.x + a.z * b.w
+        };
+    }
+
+    function quaternionToMatrix(q) {
+        const { x, y, z, w } = q;
+        const xx = x * x, xy = x * y, xz = x * z,         xw = x * w;
+        const yy = y * y, yz = y * z, yw = y * w;
+        const zz = z * z, zw = z * w;
+
+        return [
+            1 - 2 * (yy + zz), 2 * (xy - zw), 2 * (xz + yw), 0,
+            2 * (xy + zw), 1 - 2 * (xx + zz), 2 * (yz - xw), 0,
+            2 * (xz - yw), 2 * (yz + xw), 1 - 2 * (xx + yy), 0,
+            0, 0, 0, 1
+        ];
+    }
+
+    function sendState() {
+        const message = JSON.stringify({
+            hand: CONFIG.hand,
+            quaternion: calibratedQuaternion,
+            ...state
+        })
+
+        // 多次发送消息确保接收
+        for (let i = 0; i < 3; i++) {
+            if (socket.readyState === WebSocket.OPEN) {
+                socket.send(message);
+            }
+        }
+    }
+
+
+    function initJoystick() {
+        const joystick = document.getElementById('joystick');
+        const area = document.querySelector('.joystick-area');
+        let touchId = null;
+
+        const updatePosition = (x, y) => {
+            const distance = Math.sqrt(x * x + y * y);
+            if (distance > 1) {
+                x /= distance;
+                y /= distance;
+            }
+            state.joystick = [
+                Math.abs(x) > CONFIG.deadZone ? x : 0,
+                Math.abs(y) > CONFIG.deadZone ? y : 0
+            ];
+            joystick.style.transform = `translate(${x * 200}%, ${y * 200}%) translate(-50%, -50%)`;
+        };
+
+        area.addEventListener('touchstart', e => {
+            if (isEditMode) return;
+            if (!touchId) {
+                touchId = e.changedTouches[0].identifier;
+                updateJoystick(e);
+                // sendState();
+            }
+        });
+
+        area.addEventListener('touchmove', e => {
+            if (isEditMode) return;
+
+            if (touchId !== null) {
+                updateJoystick(e);
+                // sendState();
+            }
+        });
+
+        area.addEventListener('touchend', () => {
+            if (isEditMode) return;
+            touchId = null;
+            joystick.style.transform = 'translate(-50%, -50%)';
+            state.joystick = [0, 0];
+            // sendState();
+        });
+
+        joystick.addEventListener('dblclick', () => {
+            if (isEditMode) return;
+            state.joystickClicked = !state.joystickClicked;
+
+            if (state.joystickClicked) {
+                joystick.classList.add('active');
+            } else {
+                joystick.classList.remove('active');
+            }
+            sendState();
+        });
+
+        function updateJoystick(e) {
+            const touch = Array.from(e.touches).find(t => t.identifier === touchId);
+            if (!touch) return;
+            const rect = area.getBoundingClientRect();
+            const centerX = rect.width / 2;
+            const centerY = rect.height / 2;
+            const x = (touch.clientX - rect.left - centerX) / centerX;
+            const y = (touch.clientY - rect.top - centerY) / centerY;
+            updatePosition(x, y);
+        }
+    }
+    function initDial() {
+        const dial = document.getElementById('dial');
+        const area = document.getElementById('dial-area');
+        let touchId = null;
+
+        const updatePosition = (x, y) => {
+            const distance = Math.sqrt(x * x + y * y);
+            if (distance > 1) {
+                x /= distance;
+                y /= distance;
+            }
+            state.dial = [
+                Math.abs(x) > CONFIG.deadZone ? x : 0,
+                Math.abs(y) > CONFIG.deadZone ? y : 0
+            ];
+            dial.style.transform = `translate(${x * 200}%, ${y * 200}%) translate(-50%, -50%)`;
+        };
+
+        area.addEventListener('touchstart', e => {
+            if (isEditMode) return;
+            if (!touchId) {
+                touchId = e.changedTouches[0].identifier;
+                updateDialPosition(e);
+                // sendState();
+            }
+        });
+
+        area.addEventListener('touchmove', e => {
+            if (isEditMode) return;
+            if (touchId !== null) {
+                updateDialPosition(e);
+                // sendState();
+            }
+        });
+
+        area.addEventListener('touchend', () => {
+            if (isEditMode) return;
+            touchId = null;
+            dial.style.transform = 'translate(-50%, -50%)';
+            state.dial = [0, 0];
+            // sendState();
+        });
+        dial.addEventListener('dblclick', () => {
+            if (isEditMode) return;
+            state.dialClicked = true;
+            sendState();
+            state.dialClicked = false;
+        });
+        function updateDialPosition(e) {
+            const touch = Array.from(e.touches).find(t => t.identifier === touchId);
+            if (!touch) return;
+            const rect = area.getBoundingClientRect();
+            const centerX = rect.width / 2;
+            const centerY = rect.height / 2;
+            const x = (touch.clientX - rect.left - centerX) / centerX;
+            const y = (touch.clientY - rect.top - centerY) / centerY;
+            updatePosition(x, y);
+        }
+    }
+
+    function initSlider() {
+        const slider = document.getElementById('slider');
+        const area = document.getElementById('slider-area');
+        let touchId = null;
+        let isDragging = false;
+
+        const getCenterPosition = () => {
+            const moveRange = area.offsetHeight - slider.offsetHeight;
+            return moveRange / 2;
+        };
+
+        const resetToCenter = () => {
+            slider.style.transition = 'transform 0.1s cubic-bezier(0.25, 0.1, 0.25, 1)';
+            slider.style.transform = `translateY(${getCenterPosition()}px)`;
+            state.slider = 0;
+            sendState();
+        };
+
+        resetToCenter();
+
+        const updatePosition = (clientY) => {
+            const rect = area.getBoundingClientRect();
+            const sliderHeight = slider.offsetHeight;
+            const minY = rect.top + sliderHeight/2;
+            const maxY = rect.bottom - sliderHeight/2;
+            const clampedY = Math.min(Math.max(clientY, minY), maxY);
+            const yPosition = (clampedY - minY) / (maxY - minY);
+            const value = Number(((yPosition * 2) - 1));
+            state.slider = -value;
+            const moveRange = rect.height - sliderHeight;
+            const translateY = yPosition * moveRange;
+            slider.style.transition = 'none';
+            slider.style.transform = `translateY(${translateY}px)`;
+        };
+        area.addEventListener('touchstart', e => {
+            if (isEditMode) return;
+            if (!touchId) {
+                isDragging = true;
+                touchId = e.changedTouches[0].identifier;
+                updatePosition(e.touches[0].clientY);
+                // sendState();
+            }
+        });
+        area.addEventListener('touchmove', e => {
+            if (isEditMode) return;
+            if (touchId !== null && isDragging) {
+                updatePosition(e.touches[0].clientY);
+                // sendState();
+            }
+        });
+        slider.addEventListener('dblclick', () => {
+            if (isEditMode) return;
+            state.sliderClicked = true;
+            sendState();
+            state.sliderClicked = false;
+        });
+        const handleTouchEnd = () => {
+            if (isEditMode) return;
+            if (isDragging) {
+                isDragging = false;
+                touchId = null;
+                resetToCenter();
+            }
+        };
+        area.addEventListener('touchend', handleTouchEnd);
+        area.addEventListener('touchcancel', handleTouchEnd);
+    }
+
+    function initDoubleClick(elementId, stateKey) {
+        const element = document.getElementById(elementId);
+        element.addEventListener('dblclick', () => {
+            if (isEditMode) return;
+            state.buttons[stateKey] = !state.buttons[stateKey];
+            if (state.buttons[stateKey]) {
+                element.classList.add('active');
+            } else {
+                element.classList.remove('active');
+            }
+        });
+    }
+
+    function initButtons() {
+        document.querySelectorAll('.vr-button').forEach(btn => {
+            btn.addEventListener('touchstart', () => {
+                if (isEditMode) return;
+                btn.classList.add('active');
+                state.buttons[btn.id] = true;
+                sendState();
+            });
+
+            btn.addEventListener('touchend', () => {
+                if (isEditMode) return;
+                btn.classList.remove('active');
+                state.buttons[btn.id] = false;
+                sendState();
+            });
+        });
+    }
+
+    function initTriggers() {
+        const initTrigger = (id, stateKey) => {
+            const trigger = document.getElementById(id);
+            trigger.addEventListener('touchstart', () => {
+                if (isEditMode) return;
+                trigger.classList.add('active');
+                state.buttons[stateKey] = true;
+                sendState();
+            });
+
+            trigger.addEventListener('touchend', () => {
+                if (isEditMode) return;
+                trigger.classList.remove('active');
+                state.buttons[stateKey] = false;
+                sendState();
+            });
+        };
+
+        initTrigger('trigger', 'trigger');
+        initTrigger('grab', 'grab');
+        initDoubleClick('grab', 'grab');
+    }
+
+    function initCalibrate() {
+        const calibrateBtn = document.getElementById('calibrate');
+
+        async function initAudio() {
+            if (!audioContext) {
+                try {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    audioContext = new AudioContext();
+                    console.log('AudioContext已初始化');
+                } catch (error) {
+                    console.error('AudioContext初始化失败:', error);
+                }
+            }
+        }
+
+        async function requestIOSPermissions() {
+            if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
+                try {
+                    const response = await DeviceMotionEvent.requestPermission();
+                    console.log('设备运动权限响应:', response);
+                } catch (err) {
+                    console.warn('设备运动权限请求错误:', err);
+                }
+            }
+
+            if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+                try {
+                    const response = await DeviceOrientationEvent.requestPermission();
+                    console.log('设备方向权限响应:', response);
+                } catch (err) {
+                    console.warn('设备方向权限请求错误:', err);
+                }
+            }
+        }
+        async function requestVibrationPermission() {
+            try {
+                if (navigator.vibrate && navigator.permissions) {
+                    const status = await navigator.permissions.query({ name: 'vibrate' });
+                    console.log('震动权限状态:', status.state);
+                }
+            } catch (e) {
+                console.warn('震动权限检查失败:', e);
+            }
+        }
+
+        calibrateBtn.addEventListener('click', async (e) => {
+            if (isEditMode) return;
+            e.preventDefault();
+
+            await requestIOSPermissions();
+            await requestVibrationPermission();
+            await initAudio();
+            calibQuaternion = {
+                w: rawQuaternion.w,
+                x: -rawQuaternion.x,
+                y: -rawQuaternion.y,
+                z: -rawQuaternion.z
+            };
+
+            const NinetyDegreesXQuaternion = {
+                w: Math.cos(Math.PI / 4),
+                x: Math.sin(Math.PI / 4),
+                y: 0,
+                z: 0
+            };
+
+            calibQuaternion = multiplyQuaternions(NinetyDegreesXQuaternion, calibQuaternion);
+
+            console.log('已应用校准');
+        });
+    }
+    let activeGesture = null;
+
+    function handleGestureSelect(element) {
+        if (isEditMode) return;
+        document.querySelectorAll('.gesture-item').forEach(item => {
+            item.classList.remove('active');
+        });
+
+        element.classList.add('active');
+        activeGesture = element;
+
+        const fingers = JSON.parse(element.dataset.fingers);
+        state.fingers = [fingers[0],fingers[1],fingers[2],fingers[3],fingers[4]];
+        sendState();
+    }
+
+</script>
+</body>
+</html>

@@ -1,0 +1,202 @@
+{
+    "Version": "0.7.2.3",
+    "Setting": {
+        "priority": "中等运行",
+        "flip_x": false,
+        "flip_y": false,
+        "camera_width": 1280,
+        "camera_height": 720,
+        "camera_fps": 60,
+        "camera_ip": "",
+        "only_ingame": false,
+        "only_ingame_game": ""
+    },
+    "Hotkey": {
+        "enable": true
+    },
+    "Mouse": {
+        "enable": true,
+        "scalar_x": 200.0,
+        "scalar_y": 150.0,
+        "bound_threshold": 0.48,
+        "dx": 0.15
+    },
+    "Sending": {
+        "address": "127.0.0.1"
+    },
+    "Smoothing": {
+        "enable": true
+    },
+    "Controller": {
+        "send_interval": 30,
+        "server_port": 8888,
+        "websocket_port": 8889,
+        "osc_port": 39571,
+        "haptic_min_amplitude": 0.1,
+        "haptic_max_amplitude": 0.4,
+        "haptic_strength": 0.6,
+        "pitch_scalar": 2.5,
+        "movement_scalar": 5.0
+    },
+    "Tracking": {
+        "LeftController": {
+            "enable": false,
+            "base_x": -0.18,
+            "base_y": -0.3,
+            "base_z": -0.15,
+            "length": 0.4
+        },
+        "RightController": {
+            "enable": false,
+            "base_x": 0.18,
+            "base_y": -0.3,
+            "base_z": -0.15,
+            "length": 0.4
+        },
+        "Head": {
+            "enable": true,
+            "x_scalar": 1.0,
+            "y_scalar": 1.0,
+            "z_scalar": 1.0,
+            "yaw_rotation_scalar": 1.0,
+            "pitch_rotation_scalar": 1.0,
+            "roll_rotation_scalar": 1.0
+        },
+        "Face": {
+            "enable": true,
+            "block": true,
+            "face_block_threshold": 0.1,
+            "position_block_threshold": 0.0,
+            "rotation_block_threshold": 0.0
+        },
+        "Tongue": {
+            "enable": true,
+            "tongue_confidence": 0.9,
+            "tongue_threshold": 6,
+            "tongue_x_scalar": 2.0,
+            "tongue_y_scalar": 3.0,
+            "mouth_close_threshold": 0.1
+        },
+        "Pose": {
+            "enable": true,
+            "center_l_x": 0.05,
+            "center_l_y": -0.07,
+            "center_l_z": -0.12,
+            "center_r_x": -0.05,
+            "center_r_y": -0.07,
+            "center_r_z": -0.12,
+            "shift_l_y": 0.25,
+            "shift_r_y": 0.25
+        },
+        "Hand": {
+            "enable": true,
+            "center_l_x": 0.05,
+            "center_l_y": -0.07,
+            "center_l_z": -0.12,
+            "center_r_x": -0.05,
+            "center_r_y": -0.07,
+            "center_r_z": -0.12,
+            "shift_l_y": 0.0,
+            "shift_r_y": 0.0,
+            "x_scalar": 1.1,
+            "y_scalar": 1.0,
+            "z_scalar": 0.55,
+            "z_shifting": 1.4472277290670614,
+            "hand_confidence": 0.1,
+            "enable_hand_auto_reset": true,
+            "enable_hand_down": true,
+            "enable_hand_time": 5,
+            "trigger_threshold": 0.5,
+            "finger_action_threshold": 10,
+            "enable_finger_action": true,
+            "hand_detection_upper_threshold": 100,
+            "hand_detection_lower_threshold": 10,
+            "enable_swap_strategy": true,
+            "hand_swap_threshold": 0.1,
+            "position_change_points": [
+                0,
+                1,
+                17
+            ],
+            "position_change_threshold": 0.02,
+            "rotation_change_points": [
+                0,
+                1,
+                17
+            ],
+            "rotation_change_threshold": 0.05,
+            "only_front": true,
+            "follow": true
+        },
+        "Finger": {
+            "enable": true,
+            "thumb_base": [
+                0,
+                2
+            ],
+            "thumb_tip": [
+                3,
+                4
+            ],
+            "thumb_min": 30,
+            "thumb_max": 70,
+            "index_base": [
+                0,
+                5
+            ],
+            "index_tip": [
+                7,
+                8
+            ],
+            "index_min": 80,
+            "index_max": 120,
+            "middle_base": [
+                0,
+                9
+            ],
+            "middle_tip": [
+                11,
+                12
+            ],
+            "middle_min": 70,
+            "middle_max": 120,
+            "ring_base": [
+                0,
+                13
+            ],
+            "ring_tip": [
+                15,
+                16
+            ],
+            "ring_min": 70,
+            "ring_max": 120,
+            "pinky_base": [
+                0,
+                17
+            ],
+            "pinky_tip": [
+                19,
+                20
+            ],
+            "pinky_min": 70,
+            "pinky_max": 120
+        }
+    },
+    "Model": {
+        "Face": {
+            "min_face_detection_confidence": 0.5,
+            "min_face_presence_confidence": 0.5,
+            "min_tracking_confidence": 0.5
+        },
+        "Hand": {
+            "model_complexity": 1,
+            "min_hand_detection_confidence": 0.8,
+            "min_tracking_confidence": 0.4
+        },
+        "Pose": {
+            "model_complexity": 1,
+            "min_pose_detection_confidence": 0.3,
+            "model_provider": "DmlExecutionProvider"
+        }
+    }
+}
